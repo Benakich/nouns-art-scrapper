@@ -14,33 +14,29 @@ async function scrapeWarpcast(channel = "nouns-draws", maxScrolls = 6) {
   console.log("Navigating to:", url);
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
-  // Wait extra time for JS to render posts
-  await page.waitForTimeout(7000);
+  // 🕐 Wait for feed-item cards to load
+  try {
+    await page.waitForSelector('[data-testid="feed-item"]', { timeout: 10000 });
+  } catch (e) {
+    console.log("Feed items not found in time");
+  }
 
-  // Scroll a few times to load more content
+  // Scroll to load more content
   for (let i = 0; i < maxScrolls; i++) {
     await page.evaluate(() => window.scrollBy(0, window.innerHeight));
     await page.waitForTimeout(3000);
   }
 
   const results = await page.evaluate(() => {
-    const posts = [];
-    const cards = document.querySelectorAll('[data-testid="feed-item"]');
-
-    cards.forEach(card => {
+    const cards = Array.from(document.querySelectorAll('[data-testid="feed-item"]'));
+    return cards.map(card => {
       const text = card.innerText || "";
       const username = card.querySelector('[data-testid="username"]')?.innerText || "";
       const imgs = Array.from(card.querySelectorAll('img')).map(img => img.src);
       const media = imgs.filter(src => src.includes("cdn.farcaster"));
-      const castLinkEl = card.querySelector('a[href^="/"]');
-      const castLink = castLinkEl ? `https://warpcast.com${castLinkEl.getAttribute("href")}` : "";
-
-      if (media.length) {
-        posts.push({ username, text, media, castLink });
-      }
-    });
-
-    return posts;
+      const link = card.querySelector('a[href*="/"]')?.href || "";
+      return { username, text, media, link };
+    }).filter(c => c.media.length > 0);
   });
 
   await browser.close();
