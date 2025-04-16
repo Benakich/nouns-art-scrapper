@@ -38,4 +38,4 @@ async function scrapeWarpcast(channel = "nouns-animators", maxScrolls = 5) {
   console.log(JSON.stringify(results, null, 2));
 }
 
-scrapeWarpcast().catch(console.error);
+scrapeWarpcast("nouns-draws").catch(console.error);
