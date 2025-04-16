@@ -1,10 +1,13 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("chrome-aws-lambda");
 
 async function scrapeWarpcast(channel = "nouns-animators", maxScrolls = 5) {
   const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  args: chromium.args,
+  defaultViewport: chromium.defaultViewport,
+  executablePath: process.env.CHROME_BIN || await chromium.executablePath,
+  headless: true,
+});
 
   const page = await browser.newPage();
   const url = `https://warpcast.com/~/channel/${channel}`;
