@@ -3,19 +3,22 @@ const chromium = require("chrome-aws-lambda");
 
 async function scrapeWarpcast(channel = "nouns-animators", maxScrolls = 5) {
   const browser = await puppeteer.launch({
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  executablePath: process.env.CHROME_BIN || await chromium.executablePath,
-  headless: true,
-});
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: process.env.CHROME_BIN || await chromium.executablePath,
+    headless: true,
+  });
 
   const page = await browser.newPage();
   const url = `https://warpcast.com/~/channel/${channel}`;
   await page.goto(url, { waitUntil: "networkidle2" });
 
+  // Wait longer for JS-rendered content to show
+  await page.waitForTimeout(5000);
+
   for (let i = 0; i < maxScrolls; i++) {
     await page.evaluate(() => window.scrollBy(0, window.innerHeight));
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(4000); // Wait longer after each scroll
   }
 
   const results = await page.evaluate(() => {
