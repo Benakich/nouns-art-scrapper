@@ -1,0 +1,12 @@
+{
+  "name": "nouns-art-scraper",
+  "version": "1.0.0",
+  "description": "Scrapes art casts from Warpcast Nouns channels.",
+  "main": "scrapeWarpcast.js",
+  "scripts": {
+    "start": "node scrapeWarpcast.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.3.8"
+  }
+}
