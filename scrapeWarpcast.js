@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer-core");
 const chromium = require("chrome-aws-lambda");
 
-async function scrapeWarpcast(channel = "nouns-animators", maxScrolls = 5) {
+async function scrapeWarpcast(channel = "nouns-draws", maxScrolls = 6) {
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
@@ -11,27 +11,36 @@ async function scrapeWarpcast(channel = "nouns-animators", maxScrolls = 5) {
 
   const page = await browser.newPage();
   const url = `https://warpcast.com/~/channel/${channel}`;
-  await page.goto(url, { waitUntil: "networkidle2" });
+  console.log("Navigating to:", url);
+  await page.goto(url, { waitUntil: "domcontentloaded" });
 
-  // Wait longer for JS-rendered content to show
-  await page.waitForTimeout(5000);
+  // Wait extra time for JS to render posts
+  await page.waitForTimeout(7000);
 
+  // Scroll a few times to load more content
   for (let i = 0; i < maxScrolls; i++) {
     await page.evaluate(() => window.scrollBy(0, window.innerHeight));
-    await page.waitForTimeout(4000); // Wait longer after each scroll
+    await page.waitForTimeout(3000);
   }
 
   const results = await page.evaluate(() => {
-    const cards = Array.from(document.querySelectorAll('[data-testid="feed-item"]'));
-    return cards.map(card => {
-      const text = card.querySelector('[data-testid="cast-text"]')?.innerText || "";
+    const posts = [];
+    const cards = document.querySelectorAll('[data-testid="feed-item"]');
+
+    cards.forEach(card => {
+      const text = card.innerText || "";
       const username = card.querySelector('[data-testid="username"]')?.innerText || "";
-      const media = Array.from(card.querySelectorAll('img'))
-        .map(img => img.src)
-        .filter(src => src.includes('cdn.farcaster'));
-      const link = card.querySelector('a[href*="/"]')?.href || "";
-      return { username, text, media, link };
+      const imgs = Array.from(card.querySelectorAll('img')).map(img => img.src);
+      const media = imgs.filter(src => src.includes("cdn.farcaster"));
+      const castLinkEl = card.querySelector('a[href^="/"]');
+      const castLink = castLinkEl ? `https://warpcast.com${castLinkEl.getAttribute("href")}` : "";
+
+      if (media.length) {
+        posts.push({ username, text, media, castLink });
+      }
     });
+
+    return posts;
   });
 
   await browser.close();
