@@ -6,7 +6,8 @@
     "start": "node scrapeWarpcast.js"
   },
   "dependencies": {
-    "puppeteer-core": "^21.3.8",
+    "puppeteer-core": "^10.4.0",
     "chrome-aws-lambda": "^10.1.0"
   }
 }
+
