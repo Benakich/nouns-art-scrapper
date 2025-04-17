@@ -1,46 +1,40 @@
-const puppeteer = require("puppeteer-core");
-const chromium = require("chrome-aws-lambda");
+const axios = require('axios');
+const cheerio = require('cheerio');
 
-async function scrapeWarpcast(channel = "nouns-draws", maxScrolls = 6) {
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: process.env.CHROME_BIN || await chromium.executablePath,
-    headless: true,
-  });
-
-  const page = await browser.newPage();
+async function scrapeWarpcast(channel = 'nouns-draws') {
   const url = `https://warpcast.com/~/channel/${channel}`;
-  console.log("Navigating to:", url);
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+  console.log('Fetching:', url);
+  const { data: html } = await axios.get(url);
 
-  // 🕐 Wait for feed-item cards to load
-  try {
-    await page.waitForSelector('[data-testid="feed-item"]', { timeout: 10000 });
-  } catch (e) {
-    console.log("Feed items not found in time");
+  // load HTML into cheerio
+  const $ = cheerio.load(html);
+
+  // grab the Next.js data blob
+  const nextDataScript = $('#__NEXT_DATA__').html();
+  if (!nextDataScript) {
+    console.error('❌ __NEXT_DATA__ script not found');
+    return [];
   }
+  const nextData = JSON.parse(nextDataScript);
 
-  // Scroll to load more content
-  for (let i = 0; i < maxScrolls; i++) {
-    await page.evaluate(() => window.scrollBy(0, window.innerHeight));
-    await page.waitForTimeout(3000);
-  }
+  // drill in to the casts array
+  const casts = nextData.props.pageProps.feed?.casts || [];
 
-  const results = await page.evaluate(() => {
-    const cards = Array.from(document.querySelectorAll('[data-testid="feed-item"]'));
-    return cards.map(card => {
-      const text = card.innerText || "";
-      const username = card.querySelector('[data-testid="username"]')?.innerText || "";
-      const imgs = Array.from(card.querySelectorAll('img')).map(img => img.src);
-      const media = imgs.filter(src => src.includes("cdn.farcaster"));
-      const link = card.querySelector('a[href*="/"]')?.href || "";
-      return { username, text, media, link };
-    }).filter(c => c.media.length > 0);
+  const results = casts.map(cast => {
+    const { author, text, embeds, hash } = cast;
+    return {
+      username: author.username,
+      text: text || '',
+      media: (embeds || []).map(e => e.url).filter(u => u),
+      link: `https://warpcast.com/${hash}`,
+    };
   });
 
-  await browser.close();
   console.log(JSON.stringify(results, null, 2));
+  return results;
 }
 
-scrapeWarpcast("nouns-draws").catch(console.error);
+scrapeWarpcast('nouns-draws').catch(err => {
+  console.error(err);
+  process.exit(1);
+});
