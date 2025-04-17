@@ -1,30 +1,38 @@
 // scrapeWarpcast.js
-const axios = require('axios');
+const { HubRestAPIClient } = require('@standard-crypto/farcaster-js-hub-rest');
 
 async function fetchChannelCasts(channel = 'nouns-draws') {
-  const channelUrl = `https://warpcast.com/~/channel/${channel}`;
-  const hubBase    = 'https://api.noderpc.xyz/farcaster-mainnet-hub';
-  const endpoint   = `${hubBase}/v1/castsByParent`
-                   + `?fid=1`
-                   + `&url=${encodeURIComponent(channelUrl)}`;
+  // 1) instantiate pointing at a known‑good public hub
+  const client = new HubRestAPIClient({
+    hubUrl: 'https://nemes.farcaster.xyz:2281',
+  });
 
-  console.log('Fetching:', endpoint);
-  const { data } = await axios.get(endpoint);
+  // 2) call the convenience method for castsByChannel
+  console.log(`Querying casts for channel "${channel}"…`);
+  const resp = await client.apis.casts.getCastsByChannel({
+    channelId: channel,
+    limit: 20,
+  });
 
-  const msgs = data.messages || [];
-  const results = msgs.map(m => {
+  // 3) marshal out the fields we care about
+  const posts = (resp.messages || []).map(m => {
     const d = m.data;
     return {
       username:  d.author.username,
-      text:      (d.castAddBody?.text || '').trim(),
-      media:     (d.embeds || []).map(e => e.url).filter(u=>u),
+      text:      d.castAddBody?.text || '',
+      media:     (d.embeds || []).map(e => e.url).filter(u => u),
       timestamp: d.timestamp,
-      link:      `https://warpcast.com/${d.hash}`,
+      link:      `https://warpcast.com/${m.hash}`,
     };
   });
 
-  console.log(JSON.stringify(results, null,2));
+  console.log(JSON.stringify(posts, null,2));
+  return posts;
 }
 
-fetchChannelCasts(process.env.CHANNEL || 'nouns-draws')
-  .catch(err => { console.error(err); process.exit(1); });
+// entrypoint: read CHANNEL from env or default
+fetchChannelCasts(process.env.CHANNEL)
+  .catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
