@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "main": "scrapeWarpcast.js",
   "scripts": {
-    "start": "node scrapeWarpcast.js",
-    "postinstall": "npx playwright install --with-deps"
+    "start": "node scrapeWarpcast.js"
   },
   "dependencies": {
-    "playwright": "^1.42.0"
+    "puppeteer": "^21.11.0"
   }
 }
