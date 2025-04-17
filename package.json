@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "scrapeWarpcast.js",
   "scripts": {
-    "start": "node scrapeWarpcast.js"
+    "start": "node scrapeWarpcast.js",
     "postinstall": "npx playwright install --with-deps"
   },
   "dependencies": {
