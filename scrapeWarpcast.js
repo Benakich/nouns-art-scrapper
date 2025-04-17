@@ -1,28 +1,42 @@
+// scrapeWarpcast.js
 const axios = require('axios');
 
 async function fetchChannelCasts(channel = 'nouns-draws') {
-  const channelUrl = `https://warpcast.com/~/channel/${channel}`;
-  const hubBase   = 'https://foss.farchiver.xyz';
-  // Here we pass fid=1 (any valid Farcaster ID, e.g. the original Nouns bot)
-  const endpoint  = `${hubBase}/v1/castsByParent?fid=1&url=${encodeURIComponent(channelUrl)}`;
+  const ENDPOINT = 'https://hub.dwr.dev/graphql';
+  const query = `
+    query {
+      castsByChannel(channelId: "${channel}", limit: 20) {
+        messages {
+          hash
+          data {
+            author { username }
+            castAddBody { text }
+            embeds { url }
+            timestamp
+          }
+        }
+      }
+    }
+  `;
 
-  console.log('Fetching:', endpoint);
-  const { data } = await axios.get(endpoint);
+  console.log('Querying GraphQL:', channel);
+  const { data } = await axios.post(ENDPOINT, { query }, {
+    headers: { 'Content-Type': 'application/json' }
+  });
 
-  const msgs = data.messages || [];
+  const msgs = data.data.castsByChannel.messages || [];
   const results = msgs.map(m => {
     const d = m.data;
     return {
       username:  d.author.username,
       text:      (d.castAddBody?.text || '').trim(),
-      media:     (d.embeds || []).map(e => e.url).filter(u => u),
+      media:     (d.embeds || []).map(e => e.url).filter(u=>u),
       timestamp: d.timestamp,
-      link:      `https://warpcast.com/${d.hash}`,
+      link:      `https://warpcast.com/${m.hash}`,
     };
   });
 
-  console.log(JSON.stringify(results, null, 2));
-  return results;
+  console.log(JSON.stringify(results, null,2));
 }
 
 fetchChannelCasts(process.env.CHANNEL || 'nouns-draws')
