@@ -6,6 +6,6 @@
     "start": "node scrapeWarpcast.js"
   },
   "dependencies": {
-    "@standard-crypto/farcaster-js-hub-rest": "^1.0.0"
+    "axios": "^1.5.0"
   }
 }
