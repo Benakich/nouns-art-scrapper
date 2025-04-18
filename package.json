@@ -1,11 +1,11 @@
 {
-  "name": "nouns-art-scrapper",
+  "name": "warpcast-ui-scraper",
   "version": "1.0.0",
-  "main": "scrapeWarpcast.js",
+  "type": "module",
   "scripts": {
     "start": "node scrapeWarpcast.js"
   },
   "dependencies": {
-    "puppeteer": "^21.11.0"
+    "puppeteer": "^21.3.8"
   }
 }
