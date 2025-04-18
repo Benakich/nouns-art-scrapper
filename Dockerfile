@@ -1,12 +1,8 @@
 FROM node:18-slim
 
-# Install system dependencies for Puppeteer
+# Install Chromium dependencies
 RUN apt-get update && apt-get install -y \
     chromium \
-    wget \
-    ca-certificates \
-    fonts-liberation \
-    libappindicator3-1 \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -20,14 +16,14 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
-    --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+    --no-install-recommends && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY . .
 
+# Puppeteer won't redownload Chromium — saves time
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm install
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-
-CMD ["npm", "start"]
+CMD ["node", "scrapeWarpcast.js"]
