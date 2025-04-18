@@ -13,22 +13,28 @@ const main = async () => {
   await page.setViewport({ width: 1280, height: 800 });
 
   console.log("Navigating to:", CHANNEL_URL);
-  await page.goto(CHANNEL_URL, { waitUntil: "networkidle2", timeout: 0 });
+  await page.goto(CHANNEL_URL, { waitUntil: "domcontentloaded", timeout: 0 });
 
   try {
-    await page.waitForSelector('[data-testid="feed-item"]', { timeout: 20000 });
+    // Scroll slowly to trigger dynamic content load
+    for (let i = 0; i < 10; i++) {
+      await page.evaluate(() => window.scrollBy(0, 1000));
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    await page.waitForSelector('[data-testid="feed-item"]', { timeout: 30000 });
     console.log("✅ Found feed items");
 
-    const posts = await page.$$eval('[data-testid="feed-item"]', (items) => {
-      return items.map((el) => {
+    const posts = await page.$$eval('[data-testid="feed-item"]', (items) =>
+      items.map((el) => {
         const textEl = el.querySelector('[data-testid="cast-text"]');
         const imgEl = el.querySelector("img");
         return {
           text: textEl?.innerText || null,
           image: imgEl?.src || null,
         };
-      });
-    });
+      })
+    );
 
     console.log("Extracted posts:", posts.slice(0, 5));
   } catch (err) {
